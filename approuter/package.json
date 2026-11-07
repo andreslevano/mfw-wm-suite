@@ -1,0 +1,14 @@
+{
+  "name": "mfw-wm-approuter",
+  "description": "Approuter for MFW WM Suite: XSUAA login + token forwarding to the CAP service",
+  "private": true,
+  "engines": {
+    "node": "^22"
+  },
+  "dependencies": {
+    "@sap/approuter": "^23.3.0"
+  },
+  "scripts": {
+    "start": "node node_modules/@sap/approuter/approuter.js"
+  }
+}

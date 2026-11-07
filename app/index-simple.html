@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MFW WM Suite</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+    .app { max-width: 1200px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 26px 16px; text-align: center; }
+    header h1 { font-size: 28px; margin-bottom: 6px; }
+    .context { display: inline-block; margin-top: 10px; background: rgba(255,255,255,0.18); padding: 4px 12px; border-radius: 20px; font-size: 13px; }
+    nav { background: white; border-bottom: 1px solid #ddd; display: flex; flex-wrap: wrap; }
+    .nav-btn { flex: 1 1 120px; padding: 16px 8px; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; color: #666; font-weight: 500; font-size: 14px; }
+    .nav-btn.active { color: #667eea; border-bottom-color: #667eea; }
+    .nav-btn:hover { background: #f9f9f9; }
+    main { padding: 24px 16px; flex: 1; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section > h2 { margin-bottom: 4px; }
+    .section > .subtitle { color: #777; font-size: 14px; margin-bottom: 16px; }
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .pill { padding: 8px 14px; border-radius: 20px; border: 1px solid #ccd; background: white; cursor: pointer; font-size: 13px; color: #555; }
+    .pill.active { background: #667eea; border-color: #667eea; color: white; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .table-wrap { overflow-x: auto; margin: 12px 0 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+    th { background: #f8f9fa; font-weight: 600; border-bottom: 2px solid #ddd; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:hover td { background: #f9f9f9; }
+    .empty { padding: 24px; text-align: center; color: #888; background: white; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .b-open { background: #e3e8fd; color: #3f51b5; }
+    .b-picked { background: #fff3cd; color: #856404; }
+    .b-loaded { background: #ffe0cc; color: #a0522d; }
+    .b-done { background: #d4edda; color: #155724; }
+    .b-warn { background: #ffebee; color: #c62828; }
+    .form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 12px 0 20px; }
+    .form h3 { margin-bottom: 14px; font-size: 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; }
+    .form-group label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 5px; color: #555; }
+    .form-group input, .form-group select { width: 100%; padding: 9px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; }
+    .form-group input[readonly] { background: #f6f6f6; color: #666; }
+    .form-actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .hint { color: #888; font-size: 12px; margin-top: 10px; }
+    .btn { padding: 9px 18px; border-radius: 4px; border: none; cursor: pointer; font-weight: 500; font-size: 14px; }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-primary:hover { background: #5568d3; }
+    .btn-secondary { background: #ececf3; color: #333; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .result { margin: 0 0 16px; padding: 14px 16px; border-radius: 6px; font-size: 14px; display: none; }
+    .result.show { display: block; }
+    .result.ok { background: #d4edda; color: #155724; }
+    .result.err { background: #ffebee; color: #c62828; }
+    .result .meta { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 12px 0; }
+    .stat { background: white; padding: 16px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .stat-value { font-size: 28px; font-weight: 700; color: #667eea; }
+    .stat-label { font-size: 12px; color: #999; margin-top: 6px; }
+    .qty-input { width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; text-align: right; }
+    footer { background: #333; color: white; text-align: center; padding: 18px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🏢 MFW Warehouse Management Suite</h1>
+      <p>Gestión de almacenes — SAP LE-WM</p>
+      <span class="context" id="user-context">Cargando contexto…</span>
+    </header>
+
+    <nav>
+      <button class="nav-btn active" data-section="entradas">📥 Entradas</button>
+      <button class="nav-btn" data-section="salidas">📤 Salidas</button>
+      <button class="nav-btn" data-section="inventario">📊 Inventario</button>
+      <button class="nav-btn" data-section="traspasos">🔀 Traspasos</button>
+      <button class="nav-btn" data-section="utilidades">🛠 Utilidades</button>
+    </nav>
+
+    <main>
+      <div id="result" class="result"></div>
+
+      <!-- ENTRADAS -->
+      <div id="entradas" class="section active">
+        <h2>📥 Entradas</h2>
+        <p class="subtitle">Recepción de mercancía: producción, pedidos, entregas, devoluciones y ubicación (OTs de entrada).</p>
+        <div class="pills" data-group="entradas">
+          <button class="pill active" data-panel="ent-prod">Producción</button>
+          <button class="pill" data-panel="ent-po">Maquila / Comercializados</button>
+          <button class="pill" data-panel="ent-dlv">Por entrega</button>
+          <button class="pill" data-panel="ent-ret">Devoluciones</button>
+          <button class="pill" data-panel="ent-ots">OTs de entrada</button>
+        </div>
+
+        <div class="panel active" id="ent-prod">
+          <div id="ent-prod-list"></div>
+          <form class="form" id="ent-prod-form">
+            <h3>Contabilizar entrada de producción (mov. 101)</h3>
+            <div class="form-grid">
+              <div class="form-group"><label>Orden (AUFNR)</label><input name="AUFNR" required></div>
+              <div class="form-group"><label>Cantidad</label><input name="MENGE" type="number" step="any" min="0" required></div>
+              <div class="form-group"><label>UM</label><input name="MEINS" required></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Contabilizar</button></div>
+          </form>
+        </div>
+
+        <div class="panel" id="ent-po">
+          <div id="ent-po-list"></div>
+          <form class="form" id="ent-po-form">
+            <h3>Entrada por pedido (mov. 101)</h3>
+            <div class="form-grid">
+              <div class="form-group"><label>Pedido (EBELN)</label><input name="EBELN" required></div>
+              <div class="form-group"><label>Posición</label><input name="EBELP" required></div>
+              <div class="form-group"><label>Material</label><input name="MATNR" required></div>
+              <div class="form-group"><label>Lote</label><input name="CHARG"></div>
+              <div class="form-group"><label>Cantidad</label><input name="MENGE" type="number" step="any" min="0" required></div>
+              <div class="form-group"><label>UM</label><input name="MEINS" required></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Contabilizar</button></div>
+          </form>
+        </div>
+
+        <div class="panel" id="ent-dlv"><div id="ent-dlv-list"></div></div>
+        <div class="panel" id="ent-ret"><div id="ent-ret-list"></div></div>
+
+        <div class="panel" id="ent-ots">
+          <div id="ent-ots-list"></div>
+          <form class="form" id="ent-ots-form">
+            <h3>Confirmar OT de entrada (ubicación)</h3>
+            <div class="form-grid">
+              <div class="form-group"><label>Almacén</label><input name="LGNUM" readonly required></div>
+              <div class="form-group"><label>OT</label><input name="TANUM" readonly required></div>
+              <div class="form-group"><label>Posición</label><input name="TAPOS" readonly required></div>
+              <div class="form-group"><label>Unidad de almacén (HU)</label><input name="LENUM" placeholder="Escanear HU" required></div>
+              <div class="form-group"><label>Ubicación destino</label><input name="NLPLA"></div>
+            </div>
+            <p class="hint">Seleccione una posición en la tabla para cargar el formulario.</p>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Confirmar</button></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- SALIDAS -->
+      <div id="salidas" class="section">
+        <h2>📤 Salidas</h2>
+        <p class="subtitle">Separación (picking), cargue, contabilización de salida de mercancía y OTs de salida.</p>
+        <div class="pills" data-group="salidas">
+          <button class="pill active" data-panel="sal-docs">Documentos de transporte</button>
+          <button class="pill" data-panel="sal-ots">OTs de salida</button>
+        </div>
+
+        <div class="panel active" id="sal-docs">
+          <div id="sal-docs-list"></div>
+          <form class="form" id="sal-docs-form" style="display:none">
+            <h3 id="sal-docs-title">Confirmar</h3>
+            <input type="hidden" name="step">
+            <input type="hidden" name="docKind">
+            <div class="form-grid">
+              <div class="form-group"><label>Documento</label><input name="ref" readonly></div>
+              <div class="form-group"><label>Material</label><input name="MATNR" placeholder="Escanear material" required></div>
+              <div class="form-group"><label>Lote</label><input name="CHARG"></div>
+              <div class="form-group"><label>Cantidad</label><input name="MENGE" type="number" step="any" min="0" required></div>
+              <div class="form-group"><label>UM</label><input name="MEINS" required></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Confirmar</button>
+              <button class="btn btn-secondary" type="button" id="sal-docs-cancel">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel" id="sal-ots">
+          <div id="sal-ots-list"></div>
+          <form class="form" id="sal-ots-form">
+            <h3>Confirmar OT de salida</h3>
+            <div class="form-grid">
+              <div class="form-group"><label>Almacén</label><input name="LGNUM" readonly required></div>
+              <div class="form-group"><label>OT</label><input name="TANUM" readonly required></div>
+              <div class="form-group"><label>Posición</label><input name="TAPOS" readonly required></div>
+              <div class="form-group"><label>Unidad de almacén (HU)</label><input name="LENUM" placeholder="Escanear HU" required></div>
+              <div class="form-group"><label>Cantidad confirmada</label><input name="confirmedQty" type="number" step="any" min="0" required></div>
+            </div>
+            <p class="hint">Seleccione una posición en la tabla para cargar el formulario.</p>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Confirmar</button></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- INVENTARIO -->
+      <div id="inventario" class="section">
+        <h2>📊 Inventario</h2>
+        <p class="subtitle">Existencias por ubicación (equivalente a LX03).</p>
+        <form class="form" id="inv-form">
+          <div class="form-grid">
+            <div class="form-group"><label>Almacén</label><select name="LGNUM" class="wh-select"><option value="">Todos</option></select></div>
+            <div class="form-group"><label>Tipo de almacén</label><input name="LGTYP" placeholder="p.ej. 001"></div>
+            <div class="form-group"><label>Ubicación contiene</label><input name="LGPLA" placeholder="p.ej. A-01"></div>
+            <div class="form-group"><label>Material / descripción</label><input name="MAT" placeholder="Código o texto"></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Buscar</button>
+            <button class="btn btn-secondary" type="reset">Limpiar</button>
+          </div>
+        </form>
+        <div id="inv-stats" class="stats"></div>
+        <div id="inv-list"></div>
+      </div>
+
+      <!-- TRASPASOS -->
+      <div id="traspasos" class="section">
+        <h2>🔀 Traspasos</h2>
+        <p class="subtitle">Traspaso entre ubicaciones, completo o parcial.</p>
+        <form class="form" id="tra-form">
+          <div class="form-grid">
+            <div class="form-group"><label>Almacén</label><select name="LGNUM" class="wh-select" required></select></div>
+            <div class="form-group"><label>Ubicación origen</label><input name="sourceBin" placeholder="Escanear ubicación" required></div>
+            <div class="form-group"><label>Ubicación destino</label><input name="destBin" placeholder="Escanear ubicación"></div>
+            <div class="form-group"><label>Diferenciación de stock</label><input name="BESTQ" placeholder="(vacío = libre)"></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-secondary" type="submit">Ver stock en origen</button></div>
+          <div id="tra-stock"></div>
+          <div class="form-actions" id="tra-actions" style="display:none">
+            <button class="btn btn-primary" type="button" id="tra-full">Traspaso completo</button>
+            <button class="btn btn-primary" type="button" id="tra-partial">Traspaso parcial (seleccionados)</button>
+          </div>
+        </form>
+        <h3>Historial de traspasos</h3>
+        <div id="tra-history"></div>
+      </div>
+
+      <!-- UTILIDADES -->
+      <div id="utilidades" class="section">
+        <h2>🛠 Utilidades</h2>
+        <p class="subtitle">Impresión de etiquetas de unidad de almacén o ubicación.</p>
+        <div id="util-list"></div>
+        <form class="form" id="util-form">
+          <h3>Imprimir etiqueta</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>Almacén</label><input name="LGNUM" required></div>
+            <div class="form-group"><label>Centro</label><input name="WERKS" required></div>
+            <div class="form-group"><label>Unidad de almacén (HU)</label><input name="LENUM"></div>
+            <div class="form-group"><label>Ubicación</label><input name="LGPLA"></div>
+            <div class="form-group"><label>Dispositivo</label><select name="TDDEST" id="util-devices" required></select></div>
+          </div>
+          <p class="hint">Indique una HU o una ubicación.</p>
+          <div class="form-actions"><button class="btn btn-primary" type="submit">Imprimir</button></div>
+        </form>
+      </div>
+    </main>
+
+    <footer>
+      <p>MFW Warehouse Management Suite v1.0.0 | Powered by SAP CAP</p>
+    </footer>
+  </div>
+
+  <script>
+    const API = '/odata/v4';
+    const rows = {};   // last rows rendered per table, used by row buttons
+    let context = { LGNUM: '100' };
+
+    // ---------- helpers ----------
+    const esc = (v) => v == null ? '' : String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmt = (v) => v == null || v === '' ? '' : Number(v).toLocaleString('es-ES');
+    const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+    const $ = (id) => document.getElementById(id);
+
+    async function get(path) {
+      const res = await fetch(API + path);
+      if (!res.ok) throw new Error(`${res.status} ${(await res.json().catch(() => ({}))).error?.message || res.statusText}`);
+      return (await res.json()).value;
+    }
+
+    // On BTP the approuter requires a CSRF token for POSTs; locally CAP returns none and it is simply omitted
+    let csrfToken;
+    async function csrf() {
+      if (csrfToken === undefined) {
+        const res = await fetch(`${API}/login/`, { headers: { 'X-CSRF-Token': 'Fetch' } });
+        csrfToken = res.headers.get('X-CSRF-Token');
+      }
+      return csrfToken ? { 'X-CSRF-Token': csrfToken } : {};
+    }
+
+    async function act(path, body) {
+      try {
+        const post = async () => fetch(`${API}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await csrf()) }, body: JSON.stringify(body) });
+        let res = await post();
+        if (res.status === 403 && res.headers.get('X-CSRF-Token') === 'Required') { csrfToken = undefined; res = await post(); }
+        const json = await res.json().catch(() => ({}));
+        const result = res.ok ? json : { success: false, messages: [{ severity: 'E', text: json.error?.message || `Error ${res.status}` }] };
+        showResult(result);
+        return result;
+      } catch (e) {
+        showResult({ success: false, messages: [{ severity: 'E', text: e.message }] });
+        return { success: false };
+      }
+    }
+
+    function showResult(r) {
+      const el = $('result');
+      const text = (r.messages || []).map((m) => esc(m.text)).join('<br>') || (r.success ? 'Operación realizada.' : 'Error.');
+      const meta = [r.TANUM && `OT ${r.TANUM}`, r.TAPOS && `Pos. ${r.TAPOS}`, r.materialDoc && `Doc. material ${r.materialDoc}/${r.year}`, r.spoolId && `Spool ${r.spoolId}`].filter(Boolean).join(' · ');
+      el.className = 'result show ' + (r.success ? 'ok' : 'err');
+      el.innerHTML = (r.success ? '✅ ' : '⚠️ ') + text + (meta ? `<div class="meta">${esc(meta)}</div>` : '');
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function showError(target, e) {
+      $(target).innerHTML = `<div class="result show err">No se pudieron cargar los datos: ${esc(e.message)}</div>`;
+    }
+
+    // cols: [{ h, k } | { h, f: row => html, num }]; actions: [{ label, fn, show? }]
+    function table(key, cols, data, actions = []) {
+      rows[key] = data;
+      if (!data.length) return '<div class="table-wrap"><div class="empty">Sin registros</div></div>';
+      const head = cols.map((c) => `<th class="${c.num ? 'num' : ''}">${c.h}</th>`).join('') + (actions.length ? '<th></th>' : '');
+      const body = data.map((r, i) => '<tr>' +
+        cols.map((c) => `<td class="${c.num ? 'num' : ''}">${c.f ? c.f(r) : c.num ? fmt(r[c.k]) : esc(r[c.k])}</td>`).join('') +
+        (actions.length ? '<td>' + actions.filter((a) => !a.show || a.show(r)).map((a, j) =>
+          `<button class="btn btn-primary btn-sm" data-row="${key}:${i}:${actions.indexOf(a)}">${a.label}</button>`).join(' ') + '</td>' : '') +
+        '</tr>').join('');
+      tableActions[key] = actions;
+      return `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+    const tableActions = {};
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-row]');
+      if (!btn) return;
+      const [key, i, a] = btn.dataset.row.split(':');
+      tableActions[key][a].fn(rows[key][i]);
+    });
+
+    function fill(formId, values) {
+      const form = $(formId);
+      for (const [k, v] of Object.entries(values)) if (form.elements[k]) form.elements[k].value = v ?? '';
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const first = [...form.elements].find((el) => el.name && !el.readOnly && el.type !== 'hidden' && !el.value);
+      if (first) first.focus();
+    }
+
+    function values(form) {
+      const out = {};
+      for (const el of form.elements) {
+        if (!el.name) continue;
+        out[el.name] = el.type === 'number' ? (el.value === '' ? null : parseFloat(el.value)) : el.value.trim();
+      }
+      return out;
+    }
+
+    function onSubmit(formId, handler) {
+      $(formId).addEventListener('submit', async (e) => { e.preventDefault(); await handler(values(e.target), e.target); });
+    }
+
+    const statusBadge = (s) => {
+      const cls = { OPEN: 'b-open', PICKED: 'b-picked', PARTIAL: 'b-picked', LOADED: 'b-loaded', PGI_DONE: 'b-done', CONFIRMED: 'b-done', POSTED: 'b-done' }[s] || 'b-open';
+      const label = { OPEN: 'Abierto', PICKED: 'Separado', LOADED: 'Cargado', PGI_DONE: 'SM contabilizada', PARTIAL: 'Parcial', CONFIRMED: 'Confirmado', POSTED: 'Contabilizado' }[s] || s;
+      return `<span class="badge ${cls}">${esc(label)}</span>`;
+    };
+    const toLines = (items, qtyKey) => items.map((it) => ({ MATNR: it.MATNR, CHARG: it.CHARG || '', MENGE: Number(it[qtyKey]), MEINS: it.MEINS }));
+    const itemsCell = (items, qtyKey) => items.map((it) => `${esc(it.MAKTX)} · ${fmt(it[qtyKey])} ${esc(it.MEINS)}`).join('<br>');
+
+    // ---------- navigation ----------
+    const loaders = {
+      'ent-prod': loadProduction, 'ent-po': loadPurchaseOrders, 'ent-dlv': loadDeliveries, 'ent-ret': loadReturns, 'ent-ots': loadInboundOTs,
+      'sal-docs': loadOutboundDocs, 'sal-ots': loadOutboundOTs,
+      inventario: () => loadStock(), traspasos: loadTransferHistory, utilidades: loadDevices
+    };
+
+    function activeLoad(sectionId) {
+      const pill = document.querySelector(`#${sectionId} .pill.active`);
+      (loaders[pill ? pill.dataset.panel : sectionId])?.();
+    }
+
+    document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn, .section').forEach((el) => el.classList.remove('active'));
+      btn.classList.add('active');
+      $(btn.dataset.section).classList.add('active');
+      $('result').className = 'result';
+      activeLoad(btn.dataset.section);
+    }));
+
+    document.querySelectorAll('.pills').forEach((group) => group.addEventListener('click', (e) => {
+      const pill = e.target.closest('.pill');
+      if (!pill) return;
+      group.querySelectorAll('.pill').forEach((p) => p.classList.toggle('active', p === pill));
+      group.parentElement.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === pill.dataset.panel));
+      loaders[pill.dataset.panel]?.();
+    }));
+
+    // ---------- ENTRADAS ----------
+    async function loadProduction() {
+      try {
+        const data = await get('/entradas/ProductionOrders?$orderby=ERDAT desc');
+        $('ent-prod-list').innerHTML = table('prod', [
+          { h: 'Orden', k: 'AUFNR' }, { h: 'Material', k: 'MATNR' }, { h: 'Descripción', k: 'MAKTX' },
+          { h: 'Total', k: 'GAMNG', num: true }, { h: 'Ingresado', k: 'GWEMG', num: true },
+          { h: 'Pendiente', num: true, f: (r) => fmt(r.GAMNG - r.GWEMG) }, { h: 'Máx. estiba', k: 'MENGE_MAX', num: true },
+          { h: 'UM', k: 'MEINS' }, { h: 'Fecha', k: 'ERDAT' }
+        ], data, [{ label: 'Ingresar', show: (r) => r.GAMNG > r.GWEMG, fn: (r) => fill('ent-prod-form', { AUFNR: r.AUFNR, MENGE: Math.min(r.GAMNG - r.GWEMG, r.MENGE_MAX || Infinity), MEINS: r.MEINS }) }]);
+      } catch (e) { showError('ent-prod-list', e); }
+    }
+    onSubmit('ent-prod-form', async (v, form) => {
+      const r = await act('entradas/postProductionGoodsReceipt', v);
+      if (r.success) { form.reset(); loadProduction(); }
+    });
+
+    async function loadPurchaseOrders() {
+      try {
+        const pos = await get('/entradas/PurchaseOrders?$expand=items&$orderby=EBELN');
+        const data = pos.flatMap((po) => po.items.map((it) => ({ ...it, BSART: po.BSART })));
+        $('ent-po-list').innerHTML = table('po', [
+          { h: 'Pedido', k: 'EBELN' }, { h: 'Tipo', k: 'BSART' }, { h: 'Pos.', k: 'EBELP' }, { h: 'Material', k: 'MATNR' },
+          { h: 'Descripción', k: 'MAKTX' }, { h: 'Lote', k: 'CHARG' }, { h: 'Cantidad', k: 'MENGE', num: true }, { h: 'UM', k: 'MEINS' }, { h: 'F. fabricación', k: 'AEDAT' }
+        ], data, [{ label: 'Recibir', fn: (r) => fill('ent-po-form', r) }]);
+      } catch (e) { showError('ent-po-list', e); }
+    }
+    onSubmit('ent-po-form', async (v, form) => {
+      const r = await act('entradas/postPurchaseOrderGoodsReceipt', v);
+      if (r.success) form.reset();
+    });
+
+    async function loadDeliveries() {
+      try {
+        const data = await get('/entradas/InboundDeliveries?$expand=items&$orderby=VBELN');
+        $('ent-dlv-list').innerHTML = table('dlv', [
+          { h: 'Entrega', k: 'VBELN' }, { h: 'Pedido', k: 'EBELN' }, { h: 'Tipo', k: 'BSART' }, { h: 'Doc. transporte', k: 'TKNUM' },
+          { h: 'Posiciones', f: (r) => itemsCell(r.items, 'LFIMG') }
+        ], data, [{ label: 'Contabilizar entrada', fn: async (r) => {
+          if (!confirm(`¿Contabilizar la entrada de la entrega ${r.VBELN}?`)) return;
+          await act('entradas/postDeliveryGoodsReceipt', { VBELN: r.VBELN, TKNUM: r.TKNUM, items: toLines(r.items, 'LFIMG') });
+        } }]);
+      } catch (e) { showError('ent-dlv-list', e); }
+    }
+
+    async function loadReturns() {
+      try {
+        const data = await get('/entradas/ReturnDeliveries?$expand=items&$orderby=VBELN');
+        $('ent-ret-list').innerHTML = table('ret', [
+          { h: 'Devolución', k: 'VBELN' }, { h: 'Pedido', k: 'EBELN' }, { h: 'Tipo', k: 'BSART' }, { h: 'Cliente', k: 'KUNNR' },
+          { h: 'Posiciones', f: (r) => itemsCell(r.items, 'LFIMG') }
+        ], data, [{ label: 'Contabilizar devolución', fn: async (r) => {
+          if (!confirm(`¿Contabilizar la devolución ${r.VBELN} (mov. 651)?`)) return;
+          await act('entradas/postReturnGoodsReceipt', { VBELN: r.VBELN, EBELN: r.EBELN, KUNNR: r.KUNNR, items: toLines(r.items, 'LFIMG') });
+        } }]);
+      } catch (e) { showError('ent-ret-list', e); }
+    }
+
+    const otColumns = [
+      { h: 'OT', k: 'TANUM' }, { h: 'Pos.', k: 'TAPOS' }, { h: 'Material', k: 'MATNR' }, { h: 'Descripción', k: 'MAKTX' }, { h: 'Lote', k: 'CHARG' },
+      { h: 'Cantidad', k: 'GAMNG', num: true }, { h: 'UM', k: 'MEINS' }, { h: 'Origen', k: 'VLPLA' }, { h: 'Destino', k: 'NLPLA' }, { h: 'HU', k: 'LENUM' }
+    ];
+
+    async function loadInboundOTs() {
+      try {
+        const data = await get('/entradas/PendingInboundTransferOrders?$orderby=TANUM,TAPOS');
+        $('ent-ots-list').innerHTML = table('inots', otColumns, data, [{ label: 'Confirmar', fn: (r) => fill('ent-ots-form', { ...r, LENUM: '' }) }]);
+      } catch (e) { showError('ent-ots-list', e); }
+    }
+    onSubmit('ent-ots-form', async (v, form) => {
+      const r = await act('entradas/confirmInboundTransferOrder', v);
+      if (r.success) { form.reset(); loadInboundOTs(); }
+    });
+
+    // ---------- SALIDAS ----------
+    const NEXT_STEP = { OPEN: { step: 'picking', label: 'Separar' }, PICKED: { step: 'loading', label: 'Cargar' }, LOADED: { step: 'pgi', label: 'Contabilizar SM' } };
+
+    async function loadOutboundDocs() {
+      try {
+        const data = await get('/salidas/OutboundDocuments?$orderby=TKNUM');
+        $('sal-docs-list').innerHTML = table('outdocs', [
+          { h: 'Doc. transporte', k: 'TKNUM' }, { h: 'Entrega', k: 'VBELN' },
+          { h: 'Tipo', f: (r) => r.docKind === 'CONSOLIDATED' ? 'Consolidado' : 'Entrega' },
+          { h: 'Estado', f: (r) => statusBadge(r.pickStatus) }
+        ], data, [{ label: 'Siguiente paso', show: (r) => NEXT_STEP[r.pickStatus], fn: outboundStep }]);
+        // Label each button with the concrete step
+        document.querySelectorAll('#sal-docs-list [data-row]').forEach((b) => {
+          const r = rows.outdocs[b.dataset.row.split(':')[1]];
+          b.textContent = NEXT_STEP[r.pickStatus].label;
+        });
+      } catch (e) { showError('sal-docs-list', e); }
+    }
+
+    async function outboundStep(r) {
+      const { step } = NEXT_STEP[r.pickStatus];
+      if (step === 'pgi') {
+        if (!confirm(`¿Contabilizar la salida de mercancía del DT ${r.TKNUM}?`)) return;
+        const res = await act('salidas/postGoodsIssue', { TKNUM: r.TKNUM });
+        if (res.success) loadOutboundDocs();
+        return;
+      }
+      const form = $('sal-docs-form');
+      form.style.display = 'block';
+      $('sal-docs-title').textContent = `${step === 'picking' ? 'Separación' : 'Cargue'} — ${r.docKind === 'CONSOLIDATED' ? 'DT ' + r.TKNUM : 'Entrega ' + r.VBELN}`;
+      fill('sal-docs-form', { step, docKind: r.docKind, ref: r.docKind === 'CONSOLIDATED' ? r.TKNUM : r.VBELN });
+    }
+    $('sal-docs-cancel').addEventListener('click', () => { $('sal-docs-form').reset(); $('sal-docs-form').style.display = 'none'; });
+
+    onSubmit('sal-docs-form', async (v, form) => {
+      const byTransport = v.docKind === 'CONSOLIDATED';
+      const action = (v.step === 'picking' ? 'confirmPicking' : 'confirmLoading') + (byTransport ? 'ByTransportDoc' : 'ByDelivery');
+      const items = [{ MATNR: v.MATNR, CHARG: v.CHARG, MENGE: v.MENGE, MEINS: v.MEINS }];
+      const r = await act(`salidas/${action}`, byTransport ? { TKNUM: v.ref, items } : { VBELN: v.ref, items });
+      if (r.success) { form.reset(); form.style.display = 'none'; loadOutboundDocs(); }
+    });
+
+    async function loadOutboundOTs() {
+      try {
+        const data = await get('/salidas/PendingOutboundTransferOrders?$orderby=TANUM,TAPOS');
+        $('sal-ots-list').innerHTML = table('outots', otColumns, data, [{ label: 'Confirmar', fn: (r) => fill('sal-ots-form', { ...r, LENUM: '', confirmedQty: r.GAMNG }) }]);
+      } catch (e) { showError('sal-ots-list', e); }
+    }
+    onSubmit('sal-ots-form', async (v, form) => {
+      const r = await act('salidas/confirmOutboundTransferOrder', v);
+      if (r.success) { form.reset(); loadOutboundOTs(); }
+    });
+
+    // ---------- INVENTARIO ----------
+    async function loadStock(v = {}) {
+      const f = [];
+      if (v.LGNUM) f.push(`LGNUM eq ${q(v.LGNUM)}`);
+      if (v.LGTYP) f.push(`LGTYP eq ${q(v.LGTYP)}`);
+      if (v.LGPLA) f.push(`contains(LGPLA,${q(v.LGPLA)})`);
+      if (v.MAT) f.push(`(contains(MATNR,${q(v.MAT)}) or contains(tolower(MAKTX),${q(v.MAT.toLowerCase())}))`);
+      const filter = f.length ? '&$filter=' + encodeURIComponent(f.join(' and ')) : '';
+      try {
+        const data = await get('/inventario/StockByBin?$orderby=LGNUM,LGTYP,LGPLA' + filter);
+        const count = (k) => new Set(data.map((d) => d[k])).size;
+        $('inv-stats').innerHTML = [
+          [data.length, 'Quants'], [count('LGPLA'), 'Ubicaciones'], [count('MATNR'), 'Materiales'],
+          [data.filter((d) => d.BESTQ).length, 'En calidad / bloqueado']
+        ].map(([n, l]) => `<div class="stat"><div class="stat-value">${n}</div><div class="stat-label">${l}</div></div>`).join('');
+        $('inv-list').innerHTML = table('stock', [
+          { h: 'Alm.', k: 'LGNUM' }, { h: 'Tipo', k: 'LGTYP' }, { h: 'Ubicación', k: 'LGPLA' }, { h: 'Material', k: 'MATNR' },
+          { h: 'Descripción', k: 'MAKTX' }, { h: 'Lote', k: 'CHARG' }, { h: 'HU', k: 'LENUM' },
+          { h: 'Dif.', f: (r) => r.BESTQ ? `<span class="badge b-warn">${esc(r.BESTQ)}</span>` : '' },
+          { h: 'Disponible', k: 'VERME', num: true }, { h: 'A entrar', k: 'EINME', num: true }, { h: 'A salir', k: 'AUSME', num: true },
+          { h: 'Total', k: 'GESME', num: true }, { h: 'UM', k: 'MEINS' }
+        ], data);
+      } catch (e) { showError('inv-list', e); }
+    }
+    onSubmit('inv-form', (v) => loadStock(v));
+    $('inv-form').addEventListener('reset', () => setTimeout(() => loadStock(), 0));
+
+    // ---------- TRASPASOS ----------
+    let binStock = [];
+    onSubmit('tra-form', async (v) => {
+      try {
+        binStock = await get(`/traspasos/BinStock?$filter=${encodeURIComponent(`LGNUM eq ${q(v.LGNUM)} and LGPLA eq ${q(v.sourceBin)}`)}`);
+        $('tra-actions').style.display = binStock.length ? 'flex' : 'none';
+        $('tra-stock').innerHTML = table('binstock', [
+          { h: '', f: (r) => `<input type="checkbox" class="tra-sel" data-i="${binStock.indexOf(r)}">` },
+          { h: 'Material', k: 'MATNR' }, { h: 'Descripción', k: 'MAKTX' }, { h: 'Lote', k: 'CHARG' }, { h: 'HU', k: 'LENUM' },
+          { h: 'Dif.', k: 'BESTQ' }, { h: 'Disponible', k: 'VERME', num: true }, { h: 'UM', k: 'MEINS' },
+          { h: 'A trasladar', f: (r) => `<input type="number" class="qty-input" data-qty="${binStock.indexOf(r)}" min="0" step="any" max="${esc(r.VERME)}" value="${esc(r.VERME)}">` }
+        ], binStock);
+      } catch (e) { showError('tra-stock', e); }
+    });
+
+    async function transfer(complete) {
+      const v = values($('tra-form'));
+      if (!v.destBin) return showResult({ success: false, messages: [{ severity: 'E', text: 'Indique la ubicación destino.' }] });
+      const base = { LGNUM: v.LGNUM, sourceBin: v.sourceBin, destBin: v.destBin, BESTQ: v.BESTQ };
+      let r;
+      if (complete) {
+        r = await act('traspasos/createFullBinTransfer', base);
+      } else {
+        const items = [...document.querySelectorAll('.tra-sel:checked')].map((cb) => {
+          const s = binStock[cb.dataset.i];
+          return { MATNR: s.MATNR, CHARG: s.CHARG, MENGE: parseFloat(document.querySelector(`[data-qty="${cb.dataset.i}"]`).value), MEINS: s.MEINS };
+        });
+        r = await act('traspasos/createPartialBinTransfer', { ...base, items });
+      }
+      if (r.success) {
+        $('tra-form').reset(); fillWarehouses(); binStock = [];
+        $('tra-stock').innerHTML = ''; $('tra-actions').style.display = 'none';
+        loadTransferHistory();
+      }
+    }
+    $('tra-full').addEventListener('click', () => transfer(true));
+    $('tra-partial').addEventListener('click', () => transfer(false));
+
+    async function loadTransferHistory() {
+      try {
+        const data = await get('/traspasos/BinTransferRequests?$expand=items&$orderby=createdAt desc');
+        $('tra-history').innerHTML = table('trahist', [
+          { h: 'Fecha', f: (r) => r.createdAt ? esc(new Date(r.createdAt).toLocaleString('es-ES')) : '' },
+          { h: 'Alm.', k: 'LGNUM' }, { h: 'Origen', k: 'sourceBin' }, { h: 'Destino', k: 'destBin' },
+          { h: 'Tipo', f: (r) => r.complete ? 'Completo' : 'Parcial' }, { h: 'OT', k: 'resultTANUM' },
+          { h: 'Estado', f: (r) => statusBadge(r.status) }, { h: 'Posiciones', f: (r) => r.items.map((it) => `${esc(it.MATNR)} · ${fmt(it.MENGE)} ${esc(it.MEINS)}`).join('<br>') }
+        ], data);
+      } catch (e) { showError('tra-history', e); }
+    }
+
+    // ---------- UTILIDADES ----------
+    async function loadDevices() {
+      try {
+        const data = await get('/utilidades/PrintDevices?$orderby=LGNUM,TDDEST');
+        $('util-devices').innerHTML = data.map((d) => `<option value="${esc(d.TDDEST)}">${esc(d.TDDEST)} — ${esc(d.description)}</option>`).join('');
+        $('util-list').innerHTML = table('devices', [
+          { h: 'Dispositivo', k: 'TDDEST' }, { h: 'Descripción', k: 'description' }, { h: 'Almacén', k: 'LGNUM' }, { h: 'Centro', k: 'WERKS' }
+        ], data, [{ label: 'Usar', fn: (r) => fill('util-form', { TDDEST: r.TDDEST, LGNUM: r.LGNUM, WERKS: r.WERKS }) }]);
+        const form = $('util-form');
+        if (!form.elements.LGNUM.value) fill('util-form', { LGNUM: context.LGNUM, WERKS: data.find((d) => d.LGNUM === context.LGNUM)?.WERKS || '' });
+      } catch (e) { showError('util-list', e); }
+    }
+    onSubmit('util-form', async (v) => { await act('utilidades/printLabel', v); });
+
+    // ---------- startup ----------
+    let warehouses = [];
+    function fillWarehouses() {
+      document.querySelectorAll('.wh-select').forEach((sel) => {
+        const keepAll = sel.querySelector('option[value=""]');
+        sel.innerHTML = (keepAll ? '<option value="">Todos</option>' : '') +
+          warehouses.map((w) => `<option value="${esc(w.LGNUM)}">${esc(w.LGNUM)} — ${esc(w.description)}</option>`).join('');
+        if (!keepAll) sel.value = context.LGNUM;
+      });
+    }
+
+    (async function init() {
+      try {
+        const res = await fetch(`${API}/login/getUserContext()`);
+        if (res.ok) context = await res.json();
+        $('user-context').textContent = `👤 ${context.userName} · Almacén ${context.LGNUM} — ${context.warehouseDesc}`;
+        warehouses = await get('/login/Warehouses?$orderby=LGNUM');
+        fillWarehouses();
+      } catch (e) {
+        $('user-context').textContent = 'Sin contexto de usuario';
+      }
+      loadProduction();
+    })();
+  </script>
+</body>
+</html>

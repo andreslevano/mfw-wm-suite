@@ -1,0 +1,47 @@
+{
+  "name": "mfw-wm-suite",
+  "version": "1.0.0",
+  "description": "MobilityForWork Warehouse Management Suite - SAP CAP: Entradas, Salidas, Inventario, Traspasos, Utilidades",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": "^20 || ^22"
+  },
+  "dependencies": {
+    "@sap/cds": "^7.0.0",
+    "@sap/xssec": "^3.6.2",
+    "express": "^4.18.0",
+    "passport": "^0.7.0",
+    "sqlite3": "^5.1.0"
+  },
+  "devDependencies": {
+    "@sap/cds-dk": "^7.0.0"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch",
+    "deploy:local": "rm -f db.sqlite && cds deploy --to sqlite:db.sqlite",
+    "build": "cds build --production",
+    "build:mta": "npx --yes mbt@1.2.49 build -t mta_archives"
+  },
+  "cds": {
+    "features": {
+      "[production]": { "in_memory_db": true }
+    },
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "[development]": {
+          "credentials": { "url": "db.sqlite" }
+        },
+        "[production]": {
+          "credentials": { "url": ":memory:" }
+        }
+      },
+      "auth": {
+        "[development]": { "kind": "dummy" },
+        "[production]": { "kind": "xsuaa" }
+      }
+    }
+  }
+}

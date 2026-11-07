@@ -1,0 +1,41 @@
+{
+  "xsappname": "mfw-wm-suite",
+  "tenant-mode": "dedicated",
+  "scopes": [
+    { "name": "$XSAPPNAME.warehouse.read", "description": "Read warehouse data" },
+    { "name": "$XSAPPNAME.warehouse.write", "description": "Write warehouse data" },
+    { "name": "$XSAPPNAME.warehouse.execute", "description": "Execute warehouse operations (entradas, salidas, traspasos)" },
+    { "name": "$XSAPPNAME.warehouse.admin", "description": "Administer warehouse system" }
+  ],
+  "role-templates": [
+    {
+      "name": "mfw_handler",
+      "description": "Material Handler - Field operations, mobile scanning, goods receipt/issue",
+      "scope-references": ["$XSAPPNAME.warehouse.read", "$XSAPPNAME.warehouse.write", "$XSAPPNAME.warehouse.execute"]
+    },
+    {
+      "name": "mfw_supervisor",
+      "description": "Warehouse Supervisor - Team management, real-time monitoring, approval authority",
+      "scope-references": ["$XSAPPNAME.warehouse.read", "$XSAPPNAME.warehouse.write", "$XSAPPNAME.warehouse.execute"]
+    },
+    {
+      "name": "mfw_manager",
+      "description": "Warehouse Manager - Strategic operations, S/4HANA integration, KPI reporting",
+      "scope-references": ["$XSAPPNAME.warehouse.read", "$XSAPPNAME.warehouse.write", "$XSAPPNAME.warehouse.execute"]
+    },
+    {
+      "name": "mfw_admin",
+      "description": "System Administrator - Technical support, security, system configuration",
+      "scope-references": ["$XSAPPNAME.warehouse.read", "$XSAPPNAME.warehouse.write", "$XSAPPNAME.warehouse.execute", "$XSAPPNAME.warehouse.admin"]
+    }
+  ],
+  "role-collections": [
+    { "name": "MFW Warehouse Admin", "role-template-references": ["$XSAPPNAME.mfw_admin"] },
+    { "name": "MFW Warehouse Manager", "role-template-references": ["$XSAPPNAME.mfw_manager"] },
+    { "name": "MFW Warehouse Supervisor", "role-template-references": ["$XSAPPNAME.mfw_supervisor"] },
+    { "name": "MFW Material Handler", "role-template-references": ["$XSAPPNAME.mfw_handler"] }
+  ],
+  "oauth2-configuration": {
+    "redirect-uris": ["https://*.hana.ondemand.com/**"]
+  }
+}

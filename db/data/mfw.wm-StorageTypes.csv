@@ -1,0 +1,7 @@
+LGNUM,LGTYP,description
+100,001,Estantería
+100,002,Almacenamiento en bloque
+100,902,Zona de entrada (recepción)
+100,916,Zona de picking / expedición
+200,001,Estantería
+200,916,Zona de picking / expedición
